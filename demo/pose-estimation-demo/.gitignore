@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+checkpoints/*
+outputs/*
+data/generated/*
+data/processed/*
+node_modules/
+.next/

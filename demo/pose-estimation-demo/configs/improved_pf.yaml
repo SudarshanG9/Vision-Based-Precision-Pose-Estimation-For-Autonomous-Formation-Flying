@@ -1,0 +1,5 @@
+name: improved_pf
+particles: 512
+process_noise: 0.02
+measurement_noise: 0.5
+refinement_steps: 3

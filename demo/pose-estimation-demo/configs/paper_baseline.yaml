@@ -1,0 +1,4 @@
+name: paper_baseline
+particles: 256
+process_noise: 0.05
+measurement_noise: 1.0
