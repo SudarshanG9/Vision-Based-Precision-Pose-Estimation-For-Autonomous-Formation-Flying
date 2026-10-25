@@ -1,4 +1,46 @@
-name: paper_baseline
-particles: 256
-process_noise: 0.05
-measurement_noise: 1.0
+
+# Paper-faithful Particle Filter experiment configurations.
+#
+# Reported paper configurations:
+#   A: N=1000, alpha=0.9, ANN reseeding every 10 cycles.
+#   B: N=5000, alpha=0.9, ANN reseeding every cycle.
+#
+# The dynamics noise bounds and numerical epsilon below are
+# documented reproduction assumptions, not published constants.
+
+experiment:
+  scenario_id: "Approach_L1"
+  seed: 42
+  duration_seconds: 10.0
+  simulation_fps: 50
+
+camera:
+  width: 640
+  height: 480
+  fx: 800.0
+  fy: 800.0
+  pixel_noise_std: 1.5
+
+checkpoints:
+  classifier: "checkpoints/pose_classifier_best.pt"
+  calibration: "checkpoints/classifier_error_calibration.npz"
+
+particle_filter:
+  position_noise_std: 0.5
+  rotation_noise_std: 0.01
+  likelihood_epsilon: 0.000001
+  particle_sample_limit: 250
+
+configurations:
+  paper_1000:
+    particle_count: 1000
+    resampling_alpha: 0.9
+    reseed_interval: 10
+
+  paper_5000:
+    particle_count: 5000
+    resampling_alpha: 0.9
+    reseed_interval: 1
+
+outputs:
+  directory: "outputs/experiments"
