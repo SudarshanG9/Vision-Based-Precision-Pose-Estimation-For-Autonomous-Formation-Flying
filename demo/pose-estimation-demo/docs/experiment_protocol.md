@@ -284,3 +284,95 @@ Camera calibration, aircraft geometry, visibility,
 and the assumed dynamics are simplified.
 
 Real-world performance requires separate validation.
+
+
+
+## 16. Final Integration Validation
+
+The project is accepted only after the following complete
+workflow has been demonstrated:
+
+1. Python dependencies import successfully.
+2. Aircraft geometry contains exactly 14 landmarks.
+3. Camera projection follows the established conventions.
+4. The training dataset contains 42 input features.
+5. Training, validation, and test trajectories are disjoint.
+6. The ANN checkpoint loads with 4800 output classes.
+7. Calibration residuals are loaded from validation data.
+8. The paper Particle Filter initializes and runs.
+9. Improved estimators execute on the same observations.
+10. Evaluation records position and attitude errors.
+11. FastAPI successfully completes an experiment.
+12. The frontend retrieves the experiment telemetry.
+13. All visualization panels share a common simulation frame.
+14. No benchmark displays fabricated performance values.
+
+## 17. Scientific Comparisons
+
+The original paper Particle Filter must remain available
+as an independently identifiable baseline.
+
+All comparisons must use matching observation streams.
+
+Estimator initialization time must be separated from
+per-frame processing time unless explicitly labeled
+as end-to-end runtime.
+
+Estimation failure and visual measurement failure
+must be reported as separate properties.
+
+A method cannot be declared superior solely because
+its successful-frame error is lower when it fails on
+a larger proportion of observations.
+
+## 18. Reproduction Assumptions
+
+The present implementation uses:
+
+- A simplified aircraft geometry
+- A synthetic monocular pinhole camera
+- Kinematic leader trajectories
+- A restricted training pose distribution
+- Empirical classifier residual proposals
+- Assumed stochastic particle motion disturbances
+- Approximate geometric self-occlusion
+
+These assumptions must be stated during the demonstration.
+
+The work reproduces the research methodology while
+investigating experimental improvements.
+
+It does not constitute an exact numerical reproduction
+of all figures or source-code behavior in the paper.
+
+## 19. Presentation Requirements
+
+A valid demonstration should explain:
+
+1. What the leader and follower aircraft represent.
+2. Why the camera observes 14 structural landmarks.
+3. How 42 input features are formed.
+4. Why the ANN predicts 4800 pose classes.
+5. How coarse classifier predictions initialize particles.
+6. How particle propagation and measurement weighting work.
+7. Why the original method may fail to converge.
+8. How improved likelihoods and resampling differ.
+9. How PnP uses 2D-3D correspondences.
+10. How the hybrid method selects an estimate.
+11. How the dashboard visualizes measured errors.
+12. What limitations remain.
+
+## 20. Final Completion Criteria
+
+The final system must:
+
+- Complete a trained-model experiment without an exception.
+- Persist experiment telemetry.
+- Load the experiment through the REST API.
+- Display valid camera landmarks.
+- Display matching trajectory timestamps.
+- Display position and attitude errors.
+- Preserve missing data as unavailable.
+- Allow timeline scrubbing without rerunning estimation.
+- Produce repeatable numerical outputs with fixed seeds.
+- Identify baseline and extended algorithms separately.

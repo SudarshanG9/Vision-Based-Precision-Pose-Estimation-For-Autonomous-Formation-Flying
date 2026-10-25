@@ -181,7 +181,39 @@ def run_single_estimator(
                 observation,
             )
 
+
+            # A returned fallback pose is still a numerical estimate,
+            # but it is not a newly successful visual measurement.
+
+            measurement_success = None
+
+            if result is not None:
+                if name == "geometric":
+                    measurement_success = bool(
+                        result.diagnostics.get(
+                            "measurement_success",
+                            False,
+                        )
+                    )
+
+                elif name == "hybrid":
+                    geometric_details = result.diagnostics.get(
+                        "geometric_diagnostics"
+                    )
+
+                    if isinstance(geometric_details, dict):
+                        measurement_success = bool(
+                            geometric_details.get(
+                                "measurement_success",
+                                False,
+                            )
+                        )
+
+
             frame = {
+
+                "measurement_success": measurement_success,
+
                 "frame_index": observation.frame_index,
                 "timestamp": observation.timestamp,
                 "position_error_m": frame_metrics[

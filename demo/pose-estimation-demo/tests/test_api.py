@@ -424,3 +424,251 @@ def test_telemetry_alignment():
         frame["diagnostics"]["geometric"]["success"]
         is False
     )
+
+
+# ------------------------------------------------------------
+# PHASE 9: CONSOLIDATED INTEGRATION TESTS
+# Append to existing tests/test_api.py
+# ------------------------------------------------------------
+
+from pathlib import Path
+
+from evaluation.benchmark import (
+    BenchmarkConfig,
+    run_benchmark,
+)
+from models.labels import encode_pose
+from services.experiment_runner import (
+    ExperimentRunner,
+)
+from services.telemetry_builder import (
+    build_telemetry,
+    validate_benchmark_alignment,
+)
+
+
+class Phase9TestModelRegistry:
+    """Deterministic ANN fixture for integration testing only."""
+
+    loaded = False
+
+    def __init__(self):
+        self.rng = np.random.default_rng(1234)
+
+        self.errors = np.column_stack([
+            self.rng.normal(0.0, 1.0, 100),
+            self.rng.normal(0.0, 0.5, 100),
+            self.rng.normal(0.0, 0.5, 100),
+            self.rng.normal(0.0, 0.01, 100),
+        ])
+
+        self.label = encode_pose([
+            35.0,
+            2.0,
+            -1.0,
+            0.0,
+        ])
+
+    def load(self):
+        self.loaded = True
+
+    def predict(self, observation):
+        return int(self.label)
+
+    def predict_details(self, observation):
+        from models.labels import decode_pose
+
+        pose = decode_pose(self.label)
+
+        return {
+            "class_id": int(self.label),
+            "confidence": 1.0,
+            "coarse_position": pose[:3].tolist(),
+            "coarse_roll_rad": float(pose[3]),
+        }
+
+    def calibration_errors(self):
+        return self.errors.copy()
+
+    def metadata(self):
+        return {
+            "loaded": self.loaded,
+            "checkpoint": "test_fixture_only",
+            "model_type": "deterministic_integration_fixture",
+        }
+
+
+def test_phase9_benchmark_and_telemetry_alignment():
+    models = Phase9TestModelRegistry()
+
+    benchmark = run_benchmark(
+        config=BenchmarkConfig(
+            seed=42,
+            duration_seconds=0.5,
+            simulation_fps=10,
+            particle_count=32,
+            pixel_noise_std=0.5,
+        ),
+        ann_predictor=models.predict,
+        calibration_errors=models.calibration_errors(),
+        estimators=(
+            "paper_pf",
+            "improved_pf",
+            "geometric",
+            "hybrid",
+        ),
+    )
+
+    assert validate_benchmark_alignment(benchmark)
+
+    telemetry = build_telemetry(
+        experiment_id="phase9_integration_fixture",
+        benchmark=benchmark,
+        playback_fps=30,
+    )
+
+    assert telemetry["frame_count"] == 5
+
+    for frame in telemetry["frames"]:
+        assert len(frame["observation"]["keypoints"]) == 14
+        assert len(frame["observation"]["visible"]) == 14
+
+        assert frame["ground_truth"]["position"] is not None
+
+        assert set(frame["estimates"]) == {
+            "paper_pf",
+            "improved_pf",
+            "geometric",
+            "hybrid",
+        }
+
+        assert set(frame["errors"]) == set(frame["estimates"])
+
+
+def test_phase9_rejects_misaligned_observations():
+    import copy
+
+    models = Phase9TestModelRegistry()
+
+    benchmark = run_benchmark(
+        config=BenchmarkConfig(
+            seed=42,
+            duration_seconds=0.5,
+            simulation_fps=10,
+            particle_count=32,
+        ),
+        ann_predictor=models.predict,
+        calibration_errors=models.calibration_errors(),
+        estimators=("paper_pf",),
+    )
+
+    invalid = copy.deepcopy(benchmark)
+
+    invalid["observations"][1]["timestamp"] += 0.25
+
+    with pytest.raises(ValueError):
+        validate_benchmark_alignment(invalid)
+
+
+def test_phase9_real_runner_api_integration(tmp_path):
+    """
+    End-to-end API test using real numerical estimators and
+    a deterministic substitute for the trained ANN.
+
+    This does not measure research accuracy.
+    """
+
+    models = Phase9TestModelRegistry()
+
+    store = ExperimentStore(
+        tmp_path / "phase9_experiments"
+    )
+
+    runner = ExperimentRunner(models, store)
+
+    app = create_app(
+        model_registry=models,
+        experiment_store=store,
+        experiment_runner=runner,
+    )
+
+    payload = {
+        "scenario_id": "distribution_compatible_approach",
+        "estimators": [
+            "paper_pf",
+            "improved_pf",
+            "geometric",
+            "hybrid",
+        ],
+        "parameters": {
+            "particle_count": 32,
+            "resampling_alpha": 0.9,
+            "pixel_noise_std": 0.5,
+            "seed": 42,
+            "duration_seconds": 0.5,
+            "simulation_fps": 10,
+        },
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/experiments",
+            json=payload,
+        )
+
+        assert response.status_code == 202
+
+        experiment_id = response.json()["experiment_id"]
+
+        status = client.get(
+            f"/api/v1/experiments/{experiment_id}"
+        )
+
+        assert status.status_code == 200
+        assert status.json()["status"] == "completed"
+
+        telemetry_response = client.get(
+            f"/api/v1/experiments/"
+            f"{experiment_id}/telemetry"
+        )
+
+        assert telemetry_response.status_code == 200
+
+        telemetry = telemetry_response.json()
+
+        assert telemetry["frame_count"] == 5
+        assert len(telemetry["frames"]) == 5
+
+        assert all(
+            frame["ann"] is not None
+            for frame in telemetry["frames"]
+        )
+
+        summary_response = client.get(
+            f"/api/v1/experiments/"
+            f"{experiment_id}/summary"
+        )
+
+        assert summary_response.status_code == 200
+
+        summary = summary_response.json()
+
+        assert len(summary["metrics"]) == 4
+
+    saved = store.get(experiment_id)
+
+    assert saved["status"] == "completed"
+    assert saved["telemetry"]["frame_count"] == 5
+
+
+def test_phase9_installation_checks():
+    from scripts.verify_installation import (
+        check_aircraft,
+        check_camera,
+    )
+
+    aircraft = check_aircraft()
+    camera = check_camera()
+
+    assert aircraft["landmark_count"] == 14
+    assert camera["projection_valid"] is True

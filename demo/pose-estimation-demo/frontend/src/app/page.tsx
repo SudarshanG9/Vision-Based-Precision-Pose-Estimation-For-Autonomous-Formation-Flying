@@ -1,1 +1,6 @@
-export default function Page(){return <main><h1>Pose Estimation Dashboard</h1><p>Connect this UI to the FastAPI telemetry endpoint.</p></main>}
+
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+
+export default function HomePage() {
+    return <DashboardLayout />;
+}
