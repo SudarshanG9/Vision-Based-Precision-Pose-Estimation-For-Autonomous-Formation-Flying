@@ -1,1 +1,29 @@
-{"scripts":{"dev":"next dev","build":"next build","start":"next start"},"dependencies":{"next":"latest","react":"latest","react-dom":"latest","typescript":"latest"}}
+{
+    "name": "pose-estimation-dashboard",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "tsc --noEmit",
+        "test": "npm run lint && npm run build"
+    },
+    "dependencies": {
+        "next": "^15.5.0",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "plotly.js": "^3.1.0",
+        "react-plotly.js": "^2.6.0",
+        "zustand": "^5.0.8",
+        "lucide-react": "^0.468.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.18.0",
+        "@types/react": "^19.1.0",
+        "@types/react-dom": "^19.1.0",
+        "@types/plotly.js": "^2.35.0",
+        "@types/react-plotly.js": "^2.6.3",
+        "typescript": "^5.9.0"
+    }
+}
