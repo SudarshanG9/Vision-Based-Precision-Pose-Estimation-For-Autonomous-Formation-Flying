@@ -1,3 +1,52 @@
-epochs: 10
-batch_size: 32
-learning_rate: 0.001
+
+# Synthetic dataset and ANN training configuration
+# Project: Vision-Based Precision Pose Estimation
+#
+# Dataset split strategy:
+# Entire trajectory identities are separated across partitions.
+
+dataset:
+  seed: 42
+
+  # Number of independently randomized flight trajectories.
+  num_trajectories: 300
+
+  # 10 seconds × 20 frames/s = 200 samples per trajectory.
+  duration_seconds: 10.0
+  simulation_fps: 20
+
+  train_fraction: 0.70
+  val_fraction: 0.15
+  test_fraction: 0.15
+
+  pixel_noise_std: 1.5
+  dropout_probability: 0.10
+
+  output_directory: "data/processed"
+
+model:
+  input_dim: 42
+  hidden_dims: [100, 100]
+  output_dim: 4800
+  activation: "relu"
+
+training:
+  seed: 42
+  epochs: 60
+  batch_size: 256
+
+  optimizer: "adam"
+  learning_rate: 0.001
+  weight_decay: 0.00001
+
+  early_stopping_patience: 10
+
+  checkpoint_directory: "checkpoints"
+  checkpoint_name: "pose_classifier_best.pt"
+
+  device: "auto"
+
+evaluation:
+  top_k: [1, 5, 10]
+  save_confusion_metrics: true
+  report_physical_pose_error: true
