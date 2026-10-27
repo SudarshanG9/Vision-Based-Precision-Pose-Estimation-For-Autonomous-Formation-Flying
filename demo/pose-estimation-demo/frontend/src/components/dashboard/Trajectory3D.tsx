@@ -196,7 +196,9 @@ export default function Trajectory3D({
             },
             aspectmode: "data",
             camera: {
-                eye: { x: 1.6, y: 1.6, z: 0.9 }
+                eye: { x: 1.6, y: 1.6, z: 0.9 },
+                center: { x: 0, y: 0, z: 0 },
+                up: { x: 0, y: 0, z: 1 }
             }
         }
     };

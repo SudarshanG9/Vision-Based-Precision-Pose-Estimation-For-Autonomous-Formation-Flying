@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -86,6 +87,26 @@ class ExperimentRequestConfig:
         )
 
 
+def file_sha256(path):
+    """Calculate a reproducible fingerprint of a model artifact."""
+
+    path = Path(path)
+
+    if not path.is_file():
+        raise FileNotFoundError(path)
+
+    digest = hashlib.sha256()
+
+    with path.open("rb") as handle:
+        for block in iter(
+            lambda: handle.read(1024 * 1024),
+            b"",
+        ):
+            digest.update(block)
+
+    return digest.hexdigest()
+
+
 class ExperimentRunner:
     def __init__(self, model_registry, experiment_store):
         self.models = model_registry
@@ -158,10 +179,36 @@ class ExperimentRunner:
                 playback_fps=30,
             )
 
+            
+            model_metadata = self.models.metadata()
+
+            checkpoint_path = getattr(
+                self.models,
+                "checkpoint_path",
+                None,
+            )
+
+            calibration_path = getattr(
+                self.models,
+                "calibration_path",
+                None,
+            )
+
+            if checkpoint_path is not None:
+                model_metadata["checkpoint_sha256"] = file_sha256(
+                    checkpoint_path
+                )
+
+            if calibration_path is not None:
+                model_metadata["calibration_sha256"] = file_sha256(
+                    calibration_path
+                )
+
             summary = build_experiment_summary(
                 benchmark=benchmark,
-                model_metadata=self.models.metadata(),
+                model_metadata=model_metadata,
             )
+
 
             self.store.complete(
                 experiment_id,

@@ -149,6 +149,8 @@ def build_telemetry(
     playback_fps=30,
 ):
     """Convert one benchmark into frame-aligned dashboard telemetry."""
+   
+    validate_benchmark_alignment(benchmark)
 
     metadata = benchmark["metadata"]
     ground_truth = benchmark["ground_truth"]
